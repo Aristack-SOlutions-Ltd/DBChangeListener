@@ -1,0 +1,4 @@
+com\aristack\dbchangelistener\Main.class
+com\aristack\dbchangelistener\DropStaticData.class
+com\aristack\dbchangelistener\FileUtils.class
+com\aristack\dbchangelistener\DbConnection.class
