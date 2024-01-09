@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="DbChangeListener:jar3">
+    <output-path>$PROJECT_DIR$/out/artifacts/DbChangeListener_jar3</output-path>
+    <root id="archive" name="DbChangeListener.jar">
+      <element id="module-output" name="DbChangeListener" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/oracle/ojdbc8/12.2.0.1.0/ojdbc8-12.2.0.1.0.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

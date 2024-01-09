@@ -8,18 +8,9 @@ import java.sql.Statement;
 import java.util.Properties;
 
 public class DbConnection {
-        public Connection connectdb() {
+        public Connection connectDb(String url, String username, String password) {
 
         try {
-            Properties properties = new Properties();
-            InputStream inputStream = new FileInputStream("application.properties");
-//            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("application.properties");
-            properties.load(inputStream);
-
-            // Get the connection properties from the properties file
-            String url = properties.getProperty("oracleUrl");
-            String username = properties.getProperty("username");
-            String password = properties.getProperty("password");
 
             //Registering the Driver
             DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
