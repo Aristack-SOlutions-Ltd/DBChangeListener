@@ -1,6 +1,4 @@
 package com.aristack.dbchangelistener;
-
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -11,6 +9,9 @@ import java.util.List;
 import java.util.Properties;
 
 public class DropStaticData {
+
+    //This class queries the db, generates select and insert query and then returns Stringbuilder of the data (if any)
+    //for the FileUtils class to generate files for respective static data
     DbConnection dbcon = new DbConnection();
     StringBuilder stringBuilder = new StringBuilder();
     //String result = stringBuilder.toString();
@@ -28,21 +29,21 @@ public class DropStaticData {
             InputStream inputStream = new FileInputStream("application.properties");
             properties.load(inputStream);
 
-//            String url = properties.getProperty("oracleUrl");
-//            String username = properties.getProperty("username");
-//            String password = properties.getProperty("password");
+            String url = properties.getProperty("oracleUrl");
+            String username = properties.getProperty("username");
+            String password = properties.getProperty("password");
 
-            String url = properties.getProperty("oldUrl");
-            String username = properties.getProperty("oldUsername");
-            String password = properties.getProperty("oldPassword");
+//            String url = properties.getProperty("oldUrl");
+//            String username = properties.getProperty("oldUsername");
+//            String password = properties.getProperty("oldPassword");
 
-//            String url2 = properties.getProperty("oracleURL2");
-//            String username2 = properties.getProperty("username2");
-//            String password2 = properties.getProperty("password2");
+            String url2 = properties.getProperty("oracleURL2");
+            String username2 = properties.getProperty("username2");
+            String password2 = properties.getProperty("password2");
 
-            String url2 = properties.getProperty("newUrl");
-            String username2 = properties.getProperty("newUsername");
-            String password2 = properties.getProperty("newPassword");
+//            String url2 = properties.getProperty("newUrl");
+//            String username2 = properties.getProperty("newUsername");
+//            String password2 = properties.getProperty("newPassword");
 
             con1 = dbcon.connectDb(url, username, password);
             con2 = dbcon.connectDb(url2, username2, password2);
@@ -78,12 +79,13 @@ public class DropStaticData {
                 "AND b.maturity_date >= TRUNC(SYSDATE) " +
                 "AND d.product_type IN ('Bond', 'BondMMDiscount') " +
                 "AND (b.product_id, b.bond_name, b.currency, TO_CHAR(b.issue_date, 'YYYY-MM-DD'), c.short_name, TO_CHAR(b.maturity_date, 'YYYY-MM-DD'), b.daycount, b.min_purchase_amt, d.product_type) " +
-                "NOT IN (SELECT product_id, bond_name, currency, TO_CHAR(issue_date, 'YYYY-MM-DD'), short_name, TO_CHAR(maturity_date, 'YYYY-MM-DD'), daycount, min_purchase_amt, product_type FROM TTCS.custom_bond_table) " +
+                "NOT IN (SELECT product_id, bond_name, currency, TO_CHAR(issue_date, 'YYYY-MM-DD'), short_name, TO_CHAR(maturity_date, 'YYYY-MM-DD'), daycount, min_purchase_amt, product_type FROM CalypsoRiskV16.custom_bond_table) " +
                 "GROUP BY b.product_id, b.bond_name, b.currency, TO_CHAR(b.issue_date, 'YYYY-MM-DD'), c.short_name, TO_CHAR(b.maturity_date, 'YYYY-MM-DD'), b.daycount, b.min_purchase_amt, d.product_type";
 
         try (PreparedStatement statement1 = con1.prepareStatement(Selectquery)) {
             ResultSet rs = statement1.executeQuery();
 
+            //creating the header for the file
             stringBuilder.append("Product Id,Security Name,Product Currency,Issue Date,Issuer,Maturity Date,Day Count,Minimum Purchase Amount,Product Type,PRODUCT_CODE.ISIN,PRODUCT_CODE.Name\n");
 
             String Insertquery = "INSERT INTO custom_bond_table (PRODUCT_ID, BOND_NAME, CURRENCY, ISSUE_DATE, SHORT_NAME, MATURITY_DATE, DAYCOUNT, MIN_PURCHASE_AMT, PRODUCT_TYPE, PRODUCT_CODE_ISIN, PRODUCT_CODE_Name) " +
@@ -91,6 +93,7 @@ public class DropStaticData {
 
             try (PreparedStatement insertStatement = con2.prepareStatement(Insertquery)) {
                 while (rs.next()) {
+                    //Insert the data into the CalypsoRiskV16 schema
                     insertStatement.setString(1, rs.getString("PRODUCT_ID"));
                     insertStatement.setString(2, rs.getString("BOND_NAME"));
                     insertStatement.setString(3, rs.getString("CURRENCY"));
@@ -144,7 +147,7 @@ public class DropStaticData {
             String selectQuery = "SELECT SHORT_NAME " +
                     "FROM LEGAL_ENTITY " +
                     "WHERE \"LEGAL_ENTITY_ID\" IN (SELECT LEGAL_ENTITY_ID FROM LEGAL_ENTITY_ROLE WHERE ROLE_NAME = 'ProcessingOrg') " +
-                    "AND \"SHORT_NAME\" NOT IN (SELECT \"SHORT_NAME\" FROM TTCS.CUSTOM_PROCESSING_ORG) " +
+                    "AND \"SHORT_NAME\" NOT IN (SELECT \"SHORT_NAME\" FROM CalypsoRiskV16.CUSTOM_PROCESSING_ORG) " +
                     "AND le_status = 'Enabled' " +
                     "AND \"SHORT_NAME\" NOT IN (";
 
@@ -198,12 +201,12 @@ public class DropStaticData {
         String Selectquery = "SELECT LEGAL_ENTITY, PROCESSING_ORGANIZATION " +
                 "FROM LEGAL_ENTITY_RELATIONSHIP " +
                 "WHERE (LEGAL_ENTITY, PROCESSING_ORGANIZATION) NOT IN " +
-                "(SELECT LEGAL_ENTITY, PROCESSING_ORGANIZATION FROM TTCS.CUSTOM_COUNTERPARTY)";
+                "(SELECT LEGAL_ENTITY, PROCESSING_ORGANIZATION FROM CalypsoRiskV16.CUSTOM_COUNTERPARTY)";
 
         try (PreparedStatement statement = con2.prepareStatement(Selectquery)) {
             ResultSet rs = statement.executeQuery();
 
-            stringBuilder.append("Legal Entity, Processing Organization\n");
+            stringBuilder.append("Legal Entity,Processing Organization\n");
 
             String Insertquery = "INSERT INTO CUSTOM_COUNTERPARTY (LEGAL_ENTITY, PROCESSING_ORGANIZATION) VALUES (?, ?)";
             try (PreparedStatement insertStatement = con2.prepareStatement(Insertquery)) {
@@ -230,7 +233,7 @@ public class DropStaticData {
 
     public StringBuilder getCurrency() throws Exception {
         String Selectquery = "SELECT CURRENCY_CODE FROM CURRENCY_DEFAULT WHERE \"CURRENCY_CODE\" NOT IN " +
-                "(SELECT \"CURRENCY_CODE\" FROM TTCS.CUSTOM_CURRENCY_DEFAULT)";
+                "(SELECT \"CURRENCY_CODE\" FROM CalypsoRiskV16.CUSTOM_CURRENCY_DEFAULT)";
 
         try (PreparedStatement statement1 = con1.prepareStatement(Selectquery)) {
             ResultSet rs = statement1.executeQuery();
@@ -239,16 +242,27 @@ public class DropStaticData {
 
             String Insertquery = "INSERT INTO CUSTOM_CURRENCY_DEFAULT (CURRENCY_CODE) VALUES (?)";
             try (PreparedStatement insertStatement = con2.prepareStatement(Insertquery)) {
+//                while (rs.next()) {
+//                    String CURRENCY_CODE = rs.getString("CURRENCY_CODE");
+//                    String line = String.format("%-20s", CURRENCY_CODE);
+//                    stringBuilder.append(line);
+//                    stringBuilder.append(" \n");
+//
+//                    // Insert the CURRENCY_CODE into CUSTOM_CURRENCY_DEFAULT
+//                    insertStatement.setString(1, CURRENCY_CODE);
+//                    insertStatement.executeUpdate();
+//                }
                 while (rs.next()) {
                     String CURRENCY_CODE = rs.getString("CURRENCY_CODE");
-                    String line = String.format("%-20s", CURRENCY_CODE);
+                    String line = String.format("%-20s", CURRENCY_CODE).trim(); // Use trim() to remove leading and trailing spaces
                     stringBuilder.append(line);
-                    stringBuilder.append(" \n");
+                    stringBuilder.append("\n");
 
                     // Insert the CURRENCY_CODE into CUSTOM_CURRENCY_DEFAULT
                     insertStatement.setString(1, CURRENCY_CODE);
                     insertStatement.executeUpdate();
                 }
+
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -263,7 +277,7 @@ public class DropStaticData {
         String Selectquery = "SELECT PRIMARY_CURRENCY, QUOTING_CURRENCY, BP_FACTOR " +
                 "FROM CURRENCY_PAIR " +
                 "WHERE (PRIMARY_CURRENCY, QUOTING_CURRENCY, BP_FACTOR) NOT IN " +
-                "(SELECT PRIMARY_CURRENCY, QUOTING_CURRENCY, BP_FACTOR FROM TTCS.CUSTOM_CURRENCY_PAIR)";
+                "(SELECT PRIMARY_CURRENCY, QUOTING_CURRENCY, BP_FACTOR FROM CalypsoRiskV16.CUSTOM_CURRENCY_PAIR)";
 
         try (PreparedStatement statement1 = con1.prepareStatement(Selectquery)) {
             ResultSet rs = statement1.executeQuery();
@@ -298,7 +312,7 @@ public class DropStaticData {
     public StringBuilder getHoliday() throws Exception {
 
         String Selectquery = "SELECT HOLIDAY_CODE FROM HOLIDAY_CODE WHERE " +
-                "\"HOLIDAY_CODE\" NOT IN (SELECT \"HOLIDAY_CODE\" FROM TTCS.CUSTOM_HOLIDAY_CODE)";
+                "\"HOLIDAY_CODE\" NOT IN (SELECT \"HOLIDAY_CODE\" FROM CalypsoRiskV16.CUSTOM_HOLIDAY_CODE)";
 
         try (PreparedStatement statement1 = con1.prepareStatement(Selectquery)) {
             ResultSet rs = statement1.executeQuery();
@@ -326,74 +340,76 @@ public class DropStaticData {
         return stringBuilder;
     }
 
-    public StringBuilder getSalesPerson() throws Exception {
-        String Selectquery = "SELECT VALUE FROM DOMAIN_VALUES WHERE " +
-                "\"NAME\" = 'salesPerson' AND " +
-                "\"VALUE\" NOT IN (SELECT \"NAME\" FROM TTCS.DOMAIN_VALUE_SALESPERSON)";
+    //commented out as requested by Mr Kunle
+//    public StringBuilder getSalesPerson() throws Exception {
+//        String Selectquery = "SELECT VALUE FROM DOMAIN_VALUES WHERE " +
+//                "\"NAME\" = 'salesPerson' AND " +
+//                "\"VALUE\" NOT IN (SELECT \"NAME\" FROM CalypsoRiskV16.DOMAIN_VALUE_SALESPERSON)";
+//
+//        try (PreparedStatement statement1 = con1.prepareStatement(Selectquery)) {
+//            ResultSet rs = statement1.executeQuery();
+//
+//            stringBuilder.append("Sales Person Name\n");
+//
+//            String Insertquery = "INSERT INTO DOMAIN_VALUE_SALESPERSON (NAME) VALUES (?)";
+//            try (PreparedStatement insertStatement = con2.prepareStatement(Insertquery)) {
+//                while (rs.next()) {
+//                    String VALUE = rs.getString("VALUE");
+//                    String line = String.format("%-20s", VALUE);
+//                    stringBuilder.append(line);
+//                    stringBuilder.append(" \n");
+//
+//                    // Insert VALUE into DOMAIN_VALUE_SALESPERSON
+//                    insertStatement.setString(1, VALUE);
+//                    insertStatement.executeUpdate();
+//                }
+//            }
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        System.out.println(stringBuilder);
+//        return stringBuilder;
+//    }
 
-        try (PreparedStatement statement1 = con1.prepareStatement(Selectquery)) {
-            ResultSet rs = statement1.executeQuery();
-
-            stringBuilder.append("Sales Person Name\n");
-
-            String Insertquery = "INSERT INTO DOMAIN_VALUE_SALESPERSON (NAME) VALUES (?)";
-            try (PreparedStatement insertStatement = con2.prepareStatement(Insertquery)) {
-                while (rs.next()) {
-                    String VALUE = rs.getString("VALUE");
-                    String line = String.format("%-20s", VALUE);
-                    stringBuilder.append(line);
-                    stringBuilder.append(" \n");
-
-                    // Insert VALUE into DOMAIN_VALUE_SALESPERSON
-                    insertStatement.setString(1, VALUE);
-                    insertStatement.executeUpdate();
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        System.out.println(stringBuilder);
-        return stringBuilder;
-    }
-
-    public StringBuilder getTrader() throws Exception {
-        String Selectquery = "SELECT VALUE FROM DOMAIN_VALUES WHERE " +
-                "\"NAME\" = 'trader' AND " +
-                "\"VALUE\" NOT IN (SELECT \"TRADER_NAME\" FROM TTCS.DOMAIN_VALUE_TRADER)";
-
-        try (PreparedStatement statement1 = con1.prepareStatement(Selectquery)) {
-            ResultSet rs = statement1.executeQuery();
-
-            stringBuilder.append("Trader Name\n");
-
-            String Insertquery = "INSERT INTO DOMAIN_VALUE_TRADER (TRADER_NAME) VALUES (?)";
-            try (PreparedStatement insertStatement = con2.prepareStatement(Insertquery)) {
-                while (rs.next()) {
-                    String VALUE = rs.getString("VALUE");
-                    String line = String.format("%-20s", VALUE);
-                    stringBuilder.append(line);
-                    stringBuilder.append(" \n");
-
-                    // Insert VALUE into DOMAIN_VALUE_TRADER
-                    insertStatement.setString(1, VALUE);
-                    insertStatement.executeUpdate();
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        System.out.println(stringBuilder);
-        return stringBuilder;
-    }
+    //commented out as requested by Mr Kunle
+//    public StringBuilder getTrader() throws Exception {
+//        String Selectquery = "SELECT VALUE FROM DOMAIN_VALUES WHERE " +
+//                "\"NAME\" = 'trader' AND " +
+//                "\"VALUE\" NOT IN (SELECT \"TRADER_NAME\" FROM CalypsoRiskV16.DOMAIN_VALUE_TRADER)";
+//
+//        try (PreparedStatement statement1 = con1.prepareStatement(Selectquery)) {
+//            ResultSet rs = statement1.executeQuery();
+//
+//            stringBuilder.append("Trader Name\n");
+//
+//            String Insertquery = "INSERT INTO DOMAIN_VALUE_TRADER (TRADER_NAME) VALUES (?)";
+//            try (PreparedStatement insertStatement = con2.prepareStatement(Insertquery)) {
+//                while (rs.next()) {
+//                    String VALUE = rs.getString("VALUE");
+//                    String line = String.format("%-20s", VALUE);
+//                    stringBuilder.append(line);
+//                    stringBuilder.append(" \n");
+//
+//                    // Insert VALUE into DOMAIN_VALUE_TRADER
+//                    insertStatement.setString(1, VALUE);
+//                    insertStatement.executeUpdate();
+//                }
+//            }
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        System.out.println(stringBuilder);
+//        return stringBuilder;
+//    }
 
     public StringBuilder getRateIndex() throws Exception {
 
         String Selectquery = "SELECT RATE_INDEX_CODE, RATE_INDEX_TENOR, RATE_INDEX_SOURCE " +
                 "FROM rate_index " +
                 "WHERE (RATE_INDEX_CODE, RATE_INDEX_TENOR, RATE_INDEX_SOURCE) NOT IN " +
-                "(SELECT RATE_INDEX_CODE, RATE_INDEX_TENOR, RATE_INDEX_SOURCE FROM TTCS.CUSTOM_RATEINDEX)";
+                "(SELECT RATE_INDEX_CODE, RATE_INDEX_TENOR, RATE_INDEX_SOURCE FROM CalypsoRiskV16.CUSTOM_RATEINDEX)";
 
         try (PreparedStatement statement1 = con1.prepareStatement(Selectquery)) {
             ResultSet rs = statement1.executeQuery();
@@ -431,7 +447,7 @@ public class DropStaticData {
 //            String Selectquery = "SELECT SHORT_NAME\n" +
 //                    "FROM LEGAL_ENTITY\n" +
 //                    "WHERE \"LEGAL_ENTITY_ID\" IN (SELECT LEGAL_ENTITY_ID FROM LEGAL_ENTITY_ROLE WHERE ROLE_NAME = 'ProcessingOrg')\n" +
-//                    "AND \"SHORT_NAME\" NOT IN (SELECT \"SHORT_NAME\" FROM TTCS.CUSTOM_PROCESSING_ORG)\n" +
+//                    "AND \"SHORT_NAME\" NOT IN (SELECT \"SHORT_NAME\" FROM CalypsoRiskV16.CUSTOM_PROCESSING_ORG)\n" +
 //                    "AND le_status = 'Enabled'";
 //
 //            PreparedStatement statement1 = con1.prepareStatement(Selectquery);
@@ -558,7 +574,7 @@ public class DropStaticData {
         String Selectquery = "SELECT FX_RESET_NAME, PRIMARY_CURRENCY, QUOTING_CURRENCY " +
                 "FROM fx_reset " +
                 "WHERE (FX_RESET_NAME, PRIMARY_CURRENCY, QUOTING_CURRENCY) NOT IN " +
-                "(SELECT FX_RESET_NAME, PRIMARY_CURRENCY, QUOTING_CURRENCY FROM TTCS.CUSTOM_FXRESET)";
+                "(SELECT FX_RESET_NAME, PRIMARY_CURRENCY, QUOTING_CURRENCY FROM CalypsoRiskV16.CUSTOM_FXRESET)";
 
         try (PreparedStatement statement1 = con1.prepareStatement(Selectquery)) {
             ResultSet rs = statement1.executeQuery();
@@ -613,7 +629,7 @@ public class DropStaticData {
                 "JOIN legal_entity b ON a.legal_entity_id = b.legal_entity_id " +
                 "WHERE NOT EXISTS ( " +
                 "  SELECT 1 " +
-                "  FROM TTCS.CUSTOM_BOOK cb " +
+                "  FROM CalypsoRiskV16.CUSTOM_BOOK cb " +
                 "  WHERE cb.BOOK_ID = a.BOOK_ID " +
                 "  AND cb.BOOK_NAME = a.BOOK_NAME " +
                 "  AND cb.SHORT_NAME = b.SHORT_NAME " +
@@ -664,7 +680,7 @@ public class DropStaticData {
     }
 }
 
-    //old getBook method without filter
+//old getBook method without filter
 
 //    public StringBuilder getBook() throws Exception {
 //        StringBuilder stringBuilder = new StringBuilder();
@@ -673,7 +689,7 @@ public class DropStaticData {
 //                "JOIN legal_entity b ON a.legal_entity_id = b.legal_entity_id " +
 //                "WHERE NOT EXISTS ( " +
 //                "  SELECT 1 " +
-//                "  FROM TTCS.CUSTOM_BOOK cb " +
+//                "  FROM CalypsoRiskV16.CUSTOM_BOOK cb " +
 //                "  WHERE cb.BOOK_ID = a.BOOK_ID " +
 //                "  AND cb.BOOK_NAME = a.BOOK_NAME " +
 //                "  AND cb.SHORT_NAME = b.SHORT_NAME " +

@@ -68,8 +68,8 @@ public class Main {
             filewrite.getCurrency(currencyPath);
             filewrite.getcurrencyPair(currencyPairPath);
             filewrite.getHoliday(holidayPath);
-            filewrite.getSalesPerson(salesPersonPath);
-            filewrite.getTrader(traderPath);
+//            filewrite.getSalesPerson(salesPersonPath);
+//            filewrite.getTrader(traderPath);
             filewrite.getRateIndex(rateIndexPath);
             filewrite.getFXReset(fxresetPath);
             filewrite.getBook(bookPath);

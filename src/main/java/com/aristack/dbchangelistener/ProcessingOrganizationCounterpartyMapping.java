@@ -18,13 +18,13 @@ public class ProcessingOrganizationCounterpartyMapping {
         try (InputStream inputStream = new FileInputStream("application.properties")) {
             properties.load(inputStream);
 
-//            String url = properties.getProperty("url");
-//            String user = properties.getProperty("user");
-//            String password = properties.getProperty("mappingPassword");
+            String url = properties.getProperty("url");
+            String user = properties.getProperty("user");
+            String password = properties.getProperty("mappingPassword");
 
-            String url = properties.getProperty("oldUrl");
-            String user = properties.getProperty("oldUsername");
-            String password = properties.getProperty("oldPassword");
+//            String url = properties.getProperty("oldUrl");
+//            String user = properties.getProperty("oldUsername");
+//            String password = properties.getProperty("oldPassword");
 
             try (Connection connection = DriverManager.getConnection(url, user, password)) {
                 connection.setAutoCommit(false); // Start transaction
@@ -38,13 +38,13 @@ public class ProcessingOrganizationCounterpartyMapping {
                     try (InputStream otherSchemaInputStream = new FileInputStream("application.properties")) {
                         otherSchemaProperties.load(otherSchemaInputStream);
 
-//                        String otherSchemaUrl = otherSchemaProperties.getProperty("oracleURL2");
-//                        String otherSchemaUser = otherSchemaProperties.getProperty("username2");
-//                        String otherSchemaPassword = otherSchemaProperties.getProperty("password2");
+                        String otherSchemaUrl = otherSchemaProperties.getProperty("oracleURL2");
+                        String otherSchemaUser = otherSchemaProperties.getProperty("username2");
+                        String otherSchemaPassword = otherSchemaProperties.getProperty("password2");
 
-                        String otherSchemaUrl = otherSchemaProperties.getProperty("newUrl");
-                        String otherSchemaUser = otherSchemaProperties.getProperty("newUsername");
-                        String otherSchemaPassword = otherSchemaProperties.getProperty("newPassword");
+//                        String otherSchemaUrl = otherSchemaProperties.getProperty("newUrl");
+//                        String otherSchemaUser = otherSchemaProperties.getProperty("newUsername");
+//                        String otherSchemaPassword = otherSchemaProperties.getProperty("newPassword");
 
                         try (Connection otherSchemaConnection = DriverManager.getConnection(otherSchemaUrl, otherSchemaUser, otherSchemaPassword)) {
                             while (resultSet.next()) {
